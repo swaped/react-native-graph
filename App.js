@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, ActivityIndicator, ListView } from 'react-native';
 
 import { VictoryAxis, VictoryArea, VictoryChart, VictoryStack, VictoryTheme } from 'victory-native';
 
@@ -39,54 +39,76 @@ const data1995 = [
 ];
 
 export default class App extends React.Component {
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      isLoading: true,
+      dataSource: [],
+      myData:[
+        {quarter: 1, earnings: 18000},
+        {quarter: 2, earnings: 13250},
+        {quarter: 3, earnings: 15000},
+        {quarter: 4, earnings: 12000}
+      ],
+      counter: 1
+    }
+  }
+
+  componentDidMount() {
+    return fetch('http://api.openweathermap.org/data/2.5/forecast?id=524901&appid=3bb30a697c7ac119276f24df9ba8c42f')
+      .then((response) => response.json())
+      .then((responseJson) => {
+        let ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
+        this.setState({
+          isLoading: false,
+          dataSource: ds.cloneWithRows(responseJson.list),
+          newData: ds.cloneWithRows(responseJson.list)
+        }, function() {
+          // do something with new state
+        });
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }
+
+
+
   render() {
+    if (this.state.isLoading) {
+        return (
+          <View style={{flex: 1, paddingTop: 20}}>
+            <ActivityIndicator />
+          </View>
+        );
+      }
+
+
     return (
       <View style={styles.container}>
         <Text>Native mobile vizualizations</Text>
         <Text style={styles.text}>stacked bar</Text>
 
-        <VictoryChart
-           theme={VictoryTheme.material}
-         >
-           <VictoryAxis
-             tickValues={[1, 2, 3, 4]}
-             tickFormat={["Quarter 1", "Quarter 2", "Quarter 3", "Quarter 4"]}
-           />
-           <VictoryAxis
-             dependentAxis
-             tickFormat={(x) => (`$${x / 1000}k`)}
-           />
-           <VictoryStack
-             style={{
-               data: { stroke: "white", strokeWidth: 4 }
-             }}
-             colorScale={["cyan", "gold", "orange", "tomato"]}
-           >
+        <VictoryChart >
              <VictoryArea
-               style={{
-                 data: { fill: "navy" }
-               }}
-               data={data1992}
-               x="quarter"
-               y="earnings"
+               data={this.state.myData}
+               x={"quarter"}
+               y={"earnings"}
              />
-             <VictoryArea
-               data={data1993}
-               x="quarter"
-               y="earnings"
-             />
-             <VictoryArea
-               data={data1994}
-               x="quarter"
-               y="earnings"
-             />
-             <VictoryArea
-               data={data1995}
-               x="quarter"
-               y="earnings"
-             />
-           </VictoryStack>
+
          </VictoryChart>
+
+
+
+         <Text>Weather Feed</Text>
+         <ListView
+           dataSource={this.state.dataSource}
+           renderRow={(rowData) => <Text>{rowData.dt}, {rowData.dt_txt} :: {this.state.counter++}</Text>}
+         />
+
+
+
 
       </View>
     );
